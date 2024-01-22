@@ -1,0 +1,84 @@
+---
+- name: Installing dependency lvm
+  apt:
+    name:
+      - lvm2
+
+- name: Create LVM volume group ceph-vg-data-1
+  lvg:
+    pvs: /dev/sdb
+    state: present
+    vg: ceph-vg-data-1
+
+- name: Create a logical volume osd-data-lv1
+  lvol:
+    vg: ceph-vg-data-1
+    lv: osd-data-lv1
+    size: +100%FREE
+
+- name: Create LVM volume group ceph-vg-data-2
+  lvg:
+    pvs: /dev/sdc
+    state: present
+    vg: ceph-vg-data-2
+
+- name: Create a logical volume osd-data-lv2
+  lvol:
+    vg: ceph-vg-data-2
+    lv: osd-data-lv2
+    size: +100%FREE
+
+- name: Create LVM volume group ceph-vg-data-3
+  lvg:
+    pvs: /dev/sdd
+    state: present
+    vg: ceph-vg-data-3
+
+- name: Create a logical volume osd-data-lv3
+  lvol:
+    vg: ceph-vg-data-3
+    lv: osd-data-lv3
+    size: +100%FREE
+
+- name: Create LVM volume group ceph-vg-data-4
+  lvg:
+    pvs: /dev/sde
+    state: present
+    vg: ceph-vg-data-4
+
+- name: Create a logical volume osd-data-lv4
+  lvol:
+    vg: ceph-vg-data-4
+    lv: osd-data-lv4
+    size: +100%FREE
+
+- name: Create LVM volume group ceph-vg-data-5
+  lvg:
+    pvs: /dev/sdf
+    state: present
+    vg: ceph-vg-data-5
+
+- name: Create a logical volume osd-data-lv5
+  lvol:
+    vg: ceph-vg-data-5
+    lv: osd-data-lv5
+    size: +100%FREE
+
+- name: Create LVM volume group ceph-vg-db
+  lvg:
+    pvs: /dev/vda
+    state: present
+    vg: ceph-vg-db
+
+- name: Create a logical volume osd-db-lv1
+  lvol:
+    vg: ceph-vg-db
+    lv: "{{ item }}"
+    size: "200"
+  loop:
+    - "osd-db-lv1"
+    - "osd-db-lv2"
+    - "osd-db-lv3"
+    - "osd-db-lv4"
+    - "osd-db-lv5"
+  tags: db
