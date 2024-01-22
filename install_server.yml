@@ -1,0 +1,11 @@
+---
+- hosts: all
+  gather_facts: yes
+  vars:
+     ansible_python_interpreter: /usr/bin/python3
+  # vars_files:
+  #   - vars/creds.yaml
+  become: yes
+
+  roles:
+    - role: install-dependencies

@@ -1,0 +1,31 @@
+# File: roles/scripts/tasks/main.yml
+---
+#- name: clean sources.list.d del files puppet.list & zabbix.list
+#  command: rm -rf /etc/apt/sources.list.d/puppet.list && rm -rf /etc/apt/sources.list.d/zabbix.list
+#
+- name: Update and upgrade apt packages
+  apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400
+
+- name: Install dependencies
+  apt:
+    name:
+    - nvme-cli
+    - lsb-release
+    - curl
+    - wget
+    - time
+    - tzdata
+    - bzip2
+    - zip
+    - unzip
+    - mc
+    - htop
+    - iotop
+    - iftop
+    - tree
+    - tmux
+    - lvm2
+    - mdadm
