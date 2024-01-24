@@ -1,0 +1,26 @@
+---
+# ssh username@idracip > racadm» console -n com2
+# ssh username@ipmiip > ipmcset -t sol -d activate -v 1 0
+- hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+     ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: "Добавление строки в файл /etc/default/grub"
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        state: present
+        line: 'GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200n8"'
+    - name: "Добавление строки в файл /etc/default/grub"
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        state: present
+        line: 'GRUB_TERMINAL="serial console"'
+    - name: "Добавление строки в файл /etc/default/grub"
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        state: present
+        line: 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"'
+    - name: "Обновление grub"
+      ansible.builtin.shell: update-grub
