@@ -1,0 +1,105 @@
+---
+- name: Installing dependency lvm
+  apt:
+    name:
+      - lvm2
+
+- import_tasks: raid.yml
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+#- name: edit lmv.conf
+#  lineinfile:
+#    path: /etc/lvm/lvm.conf
+#    insertafter: '\# filter = \[ "a\|.*\|" \]'
+#    line: 'filter = [ "a|/dev/sd.*[1-9]$|", "a|/dev/mapper/mpath*|", "a|/dev/nvme[0-9]n*|", "r|.*|" ]'
+
+#- name: update initramfs
+#  shell:
+#    update-initramfs -c -k $(uname -r)
+
+- name: Create a new primary partition with a size of 20GiB
+  community.general.parted:
+    device: "{{ item }}"
+    number: 1
+#    part_type: logical
+    flags: [ lvm ]
+    state: "{{ state }}"
+    label: gpt
+    part_start: 0%
+    part_end: 14GiB
+  loop:
+    - /dev/md0
+
+- name: Create a new primary partition with a size of 5.66TiB
+  community.general.parted:
+    device: "{{ item }}"
+    number: 2
+    flags: [ lvm ]
+    state: "{{ state }}"
+    label: gpt
+    part_start: 14GiB
+    part_end: 2.9TiB
+  loop:
+    - /dev/md0
+
+- name: "Create wal vg disks /dev/nvme3n1 and /dev/nvme4n1, /dev/nvme5n1"
+  lvg:
+    pvs:
+      - /dev/md0p1
+    state: "{{ state }}"
+    vg: ceph-vg-wal
+  tags: vg
+
+
+- name: "Create db vg disks /dev/nvme3n1 and /dev/nvme4n1, /dev/nvme5n1"
+  lvg:
+    pvs:
+      - /dev/md0p2
+    state: "{{ state }}"
+    vg: ceph-vg-db
+  tags: vg
+
+
+- name: Create a logical volume osd-db-lv1
+  community.general.lvol:
+    vg: ceph-vg-db
+    lv: "{{ item }}"
+    size: "288G"
+    state: "{{ state }}"
+    force: true
+  loop:
+    - "osd-db-lv0"
+    - "osd-db-lv1"
+    - "osd-db-lv2"
+    - "osd-db-lv3"
+    - "osd-db-lv4"
+    - "osd-db-lv5"
+    - "osd-db-lv6"
+    - "osd-db-lv7"
+    - "osd-db-lv8"
+    - "osd-db-lv9"
+    - "osd-db-lv10"
+    - "osd-db-lv11"
+  tags: db
+
+- name: Create a logical volume osd-wal-lv1
+  lvol:
+    vg: ceph-vg-wal
+    lv: "{{ item }}"
+    size: "1G"
+    state: "{{ state }}"
+    force: true
+  loop:
+    - "osd-wal-lv0"
+    - "osd-wal-lv1"
+    - "osd-wal-lv2"
+    - "osd-wal-lv3"
+    - "osd-wal-lv4"
+    - "osd-wal-lv5"
+    - "osd-wal-lv6"
+    - "osd-wal-lv7"
+    - "osd-wal-lv8"
+    - "osd-wal-lv9"
+    - "osd-wal-lv10"
+    - "osd-wal-lv11"
+  tags: wal
