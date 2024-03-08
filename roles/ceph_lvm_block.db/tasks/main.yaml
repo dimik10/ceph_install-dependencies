@@ -1,11 +1,11 @@
 ---
-- name: Installing dependency lvm
-  apt:
-    name:
-      - lvm2
 
 - import_tasks: raid.yml
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: "установка пакета lvm"
+  apt:
+    name: "lvm2"
+    state: "present"
 
 #- name: edit lmv.conf
 #  lineinfile:
@@ -17,7 +17,7 @@
 #  shell:
 #    update-initramfs -c -k $(uname -r)
 
-- name: Create a new primary partition with a size of 20GiB
+- name: "Создание раздела для wal на raid 1 размером 14GB"
   community.general.parted:
     device: "{{ item }}"
     number: 1
@@ -30,7 +30,7 @@
   loop:
     - /dev/md0
 
-- name: Create a new primary partition with a size of 5.66TiB
+- name: "Создание раздела для db на raid 1 размером 2.9TB"
   community.general.parted:
     device: "{{ item }}"
     number: 2
@@ -42,7 +42,7 @@
   loop:
     - /dev/md0
 
-- name: "Create wal vg disks /dev/nvme3n1 and /dev/nvme4n1, /dev/nvme5n1"
+- name: "Create PV и VG wal vg disks /dev/md0"
   lvg:
     pvs:
       - /dev/md0p1
@@ -51,7 +51,7 @@
   tags: vg
 
 
-- name: "Create db vg disks /dev/nvme3n1 and /dev/nvme4n1, /dev/nvme5n1"
+- name: "Create LV db disks /dev/md0"
   lvg:
     pvs:
       - /dev/md0p2
@@ -59,7 +59,7 @@
     vg: ceph-vg-db
   tags: vg
 
-
+#Создание LV для db
 - name: Create a logical volume osd-db-lv1
   community.general.lvol:
     vg: ceph-vg-db
@@ -82,7 +82,8 @@
     - "osd-db-lv11"
   tags: db
 
-- name: Create a logical volume osd-wal-lv1
+#Создание LV для wal
+- name: "Create a logical volume osd-wal-lv1"
   lvol:
     vg: ceph-vg-wal
     lv: "{{ item }}"
@@ -103,3 +104,27 @@
     - "osd-wal-lv10"
     - "osd-wal-lv11"
   tags: wal
+
+#Имена дисков берутся из переменных
+- name: "Создание PV и VG для HDD VGCreate ceph-vg-data-"
+  lvg:
+    pvs: "{{ mydrive }}"
+    state: "{{ state }}"
+    vg: "ceph-vg-data-{{ myindex }}"
+  vars:
+    myindex: "{{ item.0 }}"
+    mydrive: "{{ item.1 }}"
+  with_indexed_items: "{{ mydrives }}"
+
+
+#Имена дисков берутся из переменных
+- name: "Создание LV для HDD LVCreate ceph-vg-data-"
+  lvol:
+    vg: "ceph-vg-data-{{ myindex }}"
+    lv: "osd-data-lv{{ myindex }}"
+    size: "+100%FREE"
+  vars:
+    myindex: "{{ item.0 }}"
+
+- name: "update initramfs"
+  shell: update-initramfs -c -k $(uname -r)

@@ -1,5 +1,5 @@
 ---
-- name: debian | Installing mdadm
+- name: "Установка пакета mdadm"
   apt:
     name: "mdadm"
     state: "present"
@@ -130,5 +130,5 @@
 # Updates initramfs archives in /boot
 - name: arrays | Updating Initramfs
   command: "{{ update_initramfs }}"
-  when: array_removed.changed and ansible_facts.os_family == "Debian"
+  when: array_removed.changed
 
