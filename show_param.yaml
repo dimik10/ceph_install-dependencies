@@ -1,0 +1,22 @@
+---
+- hosts: all
+#  strategy: free
+  gather_facts: no
+  become: no
+  vars:
+     ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+    - name: show
+      delay: 20
+      shell:
+        cmd: |
+          lsblk | grep 'nvme\|data'
+#          ps -aux | grep rsync
+
+      become: yes
+      register: out
+#    - debug: var=out.stdout_lines
+    - debug:
+        msg: "{{ out.stdout_lines | join('\n') }}"
+
