@@ -1,0 +1,27 @@
+#
+#  tasks:
+- name: Use a single pattern that contains a comma formatted as a list
+  ansible.builtin.find:
+    paths: /usr/share/ceph/mgr/dashboard/frontend/dist/en-US
+    file_type: file
+#        use_regex: yes
+    patterns: 'main*.js'
+  register: find_result
+- debug: var=find_result.files
+
+- name: "Replace line in file main*.js Он меняется от версии Ceph"
+  become: yes
+  become_user: root
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: 'Dashboard1'
+    replace: 'Dashboard'
+    backup: yes
+#  notify:
+#    - Restart service ceph-mgr
+  with_items: "{{ find_result.files }}"
+
+- name: Restart service ceph-mgr
+  ansible.builtin.service:
+    name: ceph-mgr@`hostname -s`.service
+    state: restarted
