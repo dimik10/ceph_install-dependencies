@@ -1,0 +1,10 @@
+# to part persistence change (file to sysctl)
+# run command
+---
+- name: copy persistence ceph kernel config
+  copy:
+    src: "60-ceph.conf"
+    dest: "/etc/sysctl.d/60-ceph.conf"
+
+- name: ceph apply kernel param changes
+  shell: sysctl -p /etc/sysctl.d/60-ceph.conf
