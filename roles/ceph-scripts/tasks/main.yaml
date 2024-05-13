@@ -1,0 +1,152 @@
+
+- name: Install dependencies curl and mailutils
+  tags:
+    - ceph_status
+    - fill_ceph
+    - ping
+  apt:
+#    become: yes
+#    become_user: root
+    state: present
+    name:
+    - curl
+    - mailutils
+    - bc
+    - tmux
+
+- name: Create directory /etc/ceph/scripts
+  tags:
+    - scripts
+    - ceph_status
+    - ping
+  file:
+    path: /etc/ceph/scripts
+#    group: bioinformatics
+    state: directory
+    mode: 0775
+
+- name: Add /etc/ceph/scripts/fill_ceph.sh
+  tags: [fill_ceph]
+  template:
+    src: fill_ceph.sh.j2
+    dest: /root/fill_ceph.sh
+    mode: '0744'
+
+- name: Add /etc/ceph/scripts/osd_out.sh
+  tags: [osd_out]
+  template:
+    src: osd_out.sh.j2
+    dest: /etc/ceph/scripts/osd_out.sh
+    mode: '0744'
+
+- name: Add /etc/ceph/scripts/ceph_status.sh
+  tags: [ceph_status]
+  template:
+    src: ceph_status.sh.j2
+    dest: /etc/ceph/scripts/ceph_status.sh
+    mode: '0744'
+
+- name: Add /etc/ceph/scripts/ceph-full.sh
+  tags: [ceph-full]
+  template:
+    src: ceph-full.sh.j2
+    dest: /etc/ceph/scripts/ceph-full.sh
+    mode: '0744'
+
+- name: Add /etc/ceph/scripts/osd-fall-prevention.sh
+  tags: [osd-fall-prevention]
+  template:
+    src: osd-fall-prevention.sh.j2
+    dest: /etc/ceph/scripts/osd-fall-prevention.sh
+    mode: '0744'
+
+- name: Add /etc/ceph/scripts/osd_disk.sh
+  tags: [osd_disk]
+  template:
+    src: osd_disk.sh.j2
+    dest: /etc/ceph/scripts/osd_disk.sh
+    mode: '0744'
+
+
+- name: Ensure a job that runs at 1 hour . Creates an entry like "0 * * * "
+  ansible.builtin.cron:
+    name: "Add /etc/ceph/scripts/osd_out.sh"
+#    minute: "0"
+#    hour: "*"
+    special_time: hourly
+    job: "/etc/ceph/scripts/osd_out.sh > /dev/null 2>&1"
+
+- name: Ensure a job that runs at 2 hour . Creates an entry like "0 */2 * * "
+  tags: [ceph_status]
+  ansible.builtin.cron:
+    name: "Add /etc/ceph/scripts/ceph_status.sh"
+    minute: "0"
+    hour: "*/2"
+    job: "/etc/ceph/scripts/ceph_status.sh > /dev/null 2>&1"
+
+- name: Ensure a job that runs at 1 hour . Creates an entry like "0 * * * "
+  ansible.builtin.cron:
+    name: "Add /etc/ceph/scripts/osd_disk.sh"
+    special_time: hourly
+    job: "/etc/ceph/scripts/osd_disk.sh > /dev/null 2>&1"
+
+
+- name: Ensure a job that runs at 1 minute . Creates an entry like "0 * * * "
+  ansible.builtin.cron:
+    name: "ceph-full"
+    minute: "*/1"
+#    hour: "*"
+#    special_time:
+    job: "/etc/ceph/scripts/ceph-full.sh > /dev/null 2>&1"
+
+- name: Ensure a job that runs at 1 minute . Creates an entry like "0 * * * "
+  ansible.builtin.cron:
+    name: "osd-fall-prevention"
+    minute: "*"
+#    hour: "*"
+#    special_time:
+    job: "/etc/ceph/scripts/osd-fall-prevention.sh > /dev/null 2>&1"
+
+- name: Ensure a job ping_ceph_hosts.sh that runs at 1 minute . Creates an entry like "0 * * * "
+  tags: [ping]
+  ansible.builtin.cron:
+    name: "ping_ceph_hosts"
+    minute: "*/2"
+#    hour: "*"
+#    special_time:
+    job: "/etc/ceph/scripts/ping_ceph_hosts.sh > /dev/null 2>&1"
+
+#- name: write to file
+#   tags: [ping]
+#   ansible.builtin.copy:
+#    content: "{{ item }}"
+#    dest: "/tmp/host_ceph.txt"
+#   loop: "{{ query('inventory_hostnames', 'all') }}"
+- name: Remove file /etc/ceph/scripts/host_ceph.txt
+  tags: [ping]
+  ansible.builtin.file:
+    path: /etc/ceph/scripts/host_ceph.txt
+    state: absent
+
+- name: Создание файла /etc/ceph/scripts/host_ceph.txt
+  tags: [ping]
+  ansible.builtin.file:
+    path: /etc/ceph/scripts/host_ceph.txt
+    state: touch
+    mode: '0644'
+
+- name: write to file /etc/ceph/scripts/host_ceph.txt
+  tags: [ping]
+  ansible.builtin.lineinfile:
+   line: "{{ hostvars[item].ansible_host }}"
+#  Если тут ошибка, то в файле инвентори что то не так. и подставляется неверное значение.
+   path: "/etc/ceph/scripts/host_ceph.txt"
+  loop: "{{ query('inventory_hostnames', 'all') }}"
+
+
+- name: Add /etc/ceph/scripts/ping_ceph_hosts.sh
+  tags: [ping]
+  template:
+    src: ping_ceph_hosts.sh.j2
+    dest: /etc/ceph/scripts/ping_ceph_hosts.sh
+    mode: '0700'

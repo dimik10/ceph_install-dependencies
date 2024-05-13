@@ -1,0 +1,77 @@
+#!/bin/bash
+
+#Change Log
+#v1.0
+#v1.1
+#Скрипт проверяет что он запущен на активном мониторе, чтобы письма отправлялись
+#только с него, а не со всех.
+#(иначе писем будет по количеству мониторов)
+#Далее проверка названия ceph
+#Проверка, заполнен ли Ceph, если нет, то ничего не делать.
+#Запускать ежеминутно.
+
+#Программа отправитель почты
+MAILER="$(which mail)"
+#Кому отправлять почту
+MAIL="support@testcom.com"
+#копия письма
+CC="support@testcom.com"
+#От кого отпралять почту
+SENDER="cephtcom.com"
+#Сборка тела письма в файле
+BODY="/tmp/mailbody"
+#host
+HOST=$(hostname -s)
+#Активный монитор
+ACTIVE=$(ceph -s | grep mgr | cut -c 10-  | awk '{print $1, $2, $3}' | sed 's/(.*//')
+
+ID_CEPH=$(ceph -s | grep id: | awk '{print $2}')
+
+CEPH_NAME=null
+
+#echo $CEPH_NAME
+#Тут сопоставление имён ceph к id
+case "$ID_CEPH" in
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph3 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph4 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph5 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph6 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph7 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph8 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph9 ;;
+esac
+
+#echo $ID_CEPH
+#echo $CEPH_NAME
+
+if [ "$HOST" = "$ACTIVE" ]; then
+#echo "Данный сервер является активным монитором"
+VALUE=`ceph osd df | awk '{print $17}' | grep 85.00 | wc -l`;
+  if [ $VALUE -ge 1 ]
+  then
+  ceph osd set full
+  #отправка письма
+  echo "##### $CEPH_NAME FULL: #####" > $BODY
+  echo $OUT_OSD >> $BODY
+  $MAILER -s "$CEPH_NAME FULL:" $MAIL -r $SENDER < $BODY
+  rm -rf /tmp/mailbody
+  echo $OUT_OSD > /dev/null
+
+  #Сообщение в mattermost
+  echo "{\"username\": \"Kraken\", \"channel\":\"it\", \"text\": \" $CEPH_NAME FULL! \", \"icon_emoji\": \":squid:\"}" > /tmp/test
+  curl -i -X POST -H 'Content-Type: application/json' -d @/tmp/test https://mt.test.ru/hooks/iwdyywmispramfeda4jffgffoyga
+  rm -rf /tmp/test
+  fi
+else
+echo "Данный сервер не активный монитор" > /dev/null
+fi
+
+#echo $ACTIVE
+#echo $HOST

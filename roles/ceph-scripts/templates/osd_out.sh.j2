@@ -1,0 +1,86 @@
+#!/bin/bash
+
+#Change Log
+#v1.0
+#Первая версия
+#Скрипт проверяет что он запущен на активном мониторе, чтобы письма отправлялись
+#только с него, а не со всех.
+#(иначе писем будет по количеству мониторов)
+#Далее проверка названия ceph
+#Проверка есть ли OSD с ошибкой, если нет, то ничего не делать.
+#Запускать раз в час
+
+#Программа отправитель почты
+MAILER="$(which mail)"
+#Кому отправлять почту
+MAIL="support@testcom.com"
+#копия письма
+CC="support@testcom.com"
+#От кого отпралять почту
+SENDER="ceph@testcom.com"
+#Сборка тела письма в файле
+BODY="/tmp/mailbody"
+#host
+HOST=$(hostname -s)
+#Активный монитор
+ACTIVE=$(ceph -s | grep mgr | cut -c 10-  | awk '{print $1, $2, $3}' | sed 's/(.*//')
+
+ID_CEPH=$(ceph -s | grep id: | awk '{print $2}')
+
+CEPH_NAME=null
+
+#echo $CEPH_NAME
+
+#echo $CEPH_NAME
+#Тут сопоставление имён ceph к id
+case "$ID_CEPH" in
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph3 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph4 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph5 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph6 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph7 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph8 ;;
+    "00000000-0000-0000-0000-000000000000" )
+    CEPH_NAME=Ceph9 ;;
+esac
+
+#echo $ID_CEPH
+#echo $CEPH_NAME
+
+
+
+if [ "$HOST" = "$ACTIVE" ]; then
+#echo "Данный сервер является активным монитором"
+OUT_OSD=$(ceph osd dump | grep " out")
+
+#echo "-$OUT_OSD-"
+
+if [[ "$(echo $OUT_OSD | wc -c)" -lt "3" ]]; then
+exit 0
+else
+#отправка письма
+echo "##### OSD Problem in $CEPH_NAME: #####" > $BODY
+echo $OUT_OSD >> $BODY
+
+$MAILER -s "OSD Problem in $CEPH_NAME:" $MAIL -r $SENDER < $BODY
+rm -rf /tmp/mailbody
+echo $OUT_OSD > /dev/null
+
+#Сообщение в mattermost
+echo "{\"username\": \"Kraken\", \"channel\":\"it\", \"text\": \" $CEPH_NAME osd out!\n $OUT_OSD\", \"icon_emoji\": \":squid:\"}" > /tmp/test
+curl -i -k -X POST -H 'Content-Type: application/json' -d @/tmp/test https://mt.testcom.ru/hooks/iwdyywmisrgerramfeda4j6pcoyga
+rm -rf /tmp/test
+fi
+
+else
+echo "Данный сервер не активный монитор" > /dev/null
+fi
+
+#echo $ACTIVE
+#echo $HOST
