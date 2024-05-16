@@ -1,0 +1,24 @@
+- hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    users:
+      - "ci-admins"
+  tasks:
+    - name: "Create user accounts"
+      user:
+        name: "{{ item }}"
+        comment: "gitlab CI"
+      with_items: "{{ users }}"
+    - name: "Add authorized key ci-admins"
+      authorized_key:
+        user: "{{ item }}"
+        key: "{{ lookup('file', 'files/'+ item + '.pub') }}"
+      with_items: "{{ users }}"
+    - name: "Allow ci-admins users to sudo without a password"
+      lineinfile:
+        dest: "/etc/sudoers" # path: in version 2.3
+        state: "present"
+        regexp: "^%ci-admins"
+        line: "%ci-admins ALL=(ALL) NOPASSWD: ALL"
