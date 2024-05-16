@@ -1,0 +1,45 @@
+---
+variables:
+  HOSTS:
+    description: "указать список хостов или группу, по умолчанию all"
+    value: "all"
+image: library/amd64/ansible:2.9-azure
+
+stages:
+  - verify
+  - testing
+
+## prepare for plays
+before_script:
+  - ansible --version
+  - mkdir secret
+  - echo "$ci_admins_ssh_key" > secret/ansible.key ## import ansible ssh key
+  - chmod 400 secret/ansible.key
+  - export ANSIBLE_HOST_KEY_CHECKING=False
+  - export ACTION_WARNINGS=False
+
+## verify syntax each commit
+ansible-verify:
+  stage: verify
+  tags:
+    - ansible
+  script:
+    - git -c http.sslVerify=false clone --single-branch -b main https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com
+    - ansible-playbook -i ./inventories/inv.yaml --syntax-check mount_ceph.yaml
+  allow_failure: false
+  only:
+    refs:
+      - main
+## test playbook on test inventory with $TEST_INVENTORY group var
+testing:
+  stage: testing
+  tags:
+    - ansible
+  script:
+    - git -c http.sslVerify=false clone --single-branch -b main https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/mounts.git
+    - ansible-playbook --private-key secret/ansible.key --user ci-admin -i ./inventories/testing.yaml --limit ${HOSTS} -m ping
+  allow_failure: false
+  only:
+    refs:
+      - main
+### deploy playbook with manual run
