@@ -1,0 +1,34 @@
+[Unit]
+Description=alertmanager
+After=docker.service network-online.target local-fs.target time-sync.target
+Requires=docker.service
+Wants=network-online.target local-fs.target time-sync.target
+
+[Service]
+WorkingDirectory=/var/lib/alertmanager
+EnvironmentFile=-/etc/environment
+ExecStartPre=-/usr/bin/docker rm -f alertmanager
+ExecStart=/usr/bin/docker run --rm --name=alertmanager \
+  --pids-limit=-1 \
+  -v "/etc/alertmanager:/etc/alertmanager:Z" \
+  -v "/var/lib/alertmanager:/alertmanager:Z" \
+  --net=host \
+  --cpu-period=100000 \
+  --cpu-quota=200000 \
+  --memory=4GB \
+  --memory-swap=8GB \
+  images/library/amd64/prom/alertmanager:v0.25.0 \
+  --config.file=/etc/alertmanager/alertmanager.yml \
+  --cluster.listen-address=10.10.1.1:9094 \
+  --storage.path=/alertmanager \
+  --web.external-url=http://mon.ru:9093/ \
+  --web.listen-address=10.10.1.1:9093
+ExecStop=/usr/bin/docker stop alertmanager
+KillMode=none
+Restart=always
+RestartSec=10s
+TimeoutStartSec=120
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target
