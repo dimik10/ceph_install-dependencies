@@ -1,0 +1,70 @@
+global:
+  resolve_timeout: 5m
+  http_config:
+    tls_config:
+      insecure_skip_verify: true
+receivers:
+- name: ceph-dashboard
+  webhook_configs:
+  - http_config:
+      tls_config:
+        insecure_skip_verify: true
+    url: https://mon034-01:8443/api/prometheus_receiver
+  - http_config:
+      tls_config:
+        insecure_skip_verify: true
+    url: https://mon034-02:8443/api/prometheus_receiver
+  - http_config:
+      tls_config:
+        insecure_skip_verify: true
+    url: https://mon034-03:8443/api/prometheus_receiver
+
+#- name: telegram_bot
+#  telegram_configs:
+#  - bot_token: '618165erivev1:eprvjorievorew3QXksExjnZYCzE'
+#    api_url: 'https://api.telegram.org'
+#    chat_id:  -1001911763333
+#    parse_mode: ''
+
+#- name: smtp
+#  email_configs:
+#  - smarthost: mail.ru:25
+#    hello: mail.ru
+#    to: 'support@mail.ru'
+#    from: 'ceph@mail.ru'
+#    send_resolved: true
+#    require_tls: false
+
+#- name: mt
+#  slack_configs:
+#    - send_resolved: true
+#      api_url: "https://mt.ru/hooks/iwdyywmiseff3feda4j6pcoyga"
+#      channel: "it"
+#      icon_emoji: ":ceph:"
+#      title: "{{ range .Alerts }}{{ .Annotations.summary }} {{ .Labels.instance }}\n{{ end }}"
+#      text: "{{ range .Alerts }}{{ .Annotations.description }} {{ .Labels.instance }} {{ .Labels.disk }}\n{{ end }}"
+## {{ .Value }}
+
+
+route:
+  group_by:
+  - alertname
+  group_interval: 10s
+  group_wait: 10s
+  receiver: ceph-dashboard
+  repeat_interval: 1h
+
+  routes:
+#    - match:
+#        severity: page
+#      continue: true
+#      receiver: smtp
+#      group_wait: 10s
+#      repeat_interval: 3h
+#    - match:
+#        severity: page
+#      receiver: mt
+#      continue: true
+#    - receiver: telegram_bot
+#      group_wait: 10s
+#      repeat_interval: 3h
