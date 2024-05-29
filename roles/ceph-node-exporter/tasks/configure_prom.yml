@@ -1,0 +1,18 @@
+#скопировать файлы
+- name: "Копирование файлов"
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/prometheus/alerting/{{ item }}"
+    mode: '0644'
+  loop:
+    - "ceph_dashboard.yml"
+  tags: prom
+
+- name: "restart service prom"
+  systemd:
+    name: prometheus
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  failed_when: false
+  tags: prom

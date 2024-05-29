@@ -1,0 +1,21 @@
+---
+
+- name: disable node_exporter service
+  service:
+    name: node_exporter
+    state: stopped
+    enabled: no
+#  failed_when: false
+
+- name: remove node_exporter service files
+  file:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/node_exporter.service
+    - /run/node_exporter.service-cid
+
+#- name: remove node-exporter image
+#  command: "{{ container_binary }} rmi {{ node_exporter_container_image }}"
+##  changed_when: false
+##  failed_when: false

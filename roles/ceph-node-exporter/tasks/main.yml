@@ -1,0 +1,16 @@
+---
+#- name: copy dashboard prom
+#  include_tasks: configure_prom.yml
+#  when: host in groups[mon] |
+#  tags: prom
+
+- name: install script and program
+  include_tasks: install_scripts.yml
+
+#- name: include remove_container.yml
+#  include_tasks: remove_container.yml
+
+#- name: include setup_container.yml
+#  include_tasks: setup_container.yml
+
+

@@ -1,0 +1,58 @@
+---
+#установить программы
+- name: "Install dependencies nvme, sponge"
+  apt:
+    name:
+    - moreutils
+    - nvme-cli
+    - jq
+#создать директорию
+- name: Create directory /etc/ceph/scripts
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0775
+  loop:
+    - "/var/lib/node_exporter"
+    - "/scripts"
+
+#скопировать файлы
+- name: "Копирование файлов"
+  copy:
+    src: "{{ item }}"
+    dest: "/scripts/{{ item }}"
+    mode: '0755'
+  loop:
+    - "md_info.sh"
+    - "multipathd_info.sh"
+    - "nvme_metrics.sh"
+    - "smartmon.sh"
+  register: "copy"
+#добавить крон
+- name: "Ensure a job that runs at 1 hour . Creates an entry like 0 */1 * * "
+  ansible.builtin.cron:
+    name: "Add /var/lib/node_exporter/smartmon.sh"
+    minute: "0"
+    hour: "*/1"
+    job: "/scripts/smartmon.sh | sponge /var/lib/node_exporter/smartmon.prom"
+
+- name: "Ensure a job that runs at 1 hour . Creates an entry like 0 */1 * * "
+  ansible.builtin.cron:
+    name: "Add /var/lib/node_exporter/nvme_metrics.sh"
+    minute: "0"
+    hour: "*/1"
+    job: "/scripts/nvme_metrics.sh | sponge /var/lib/node_exporter/nvme_metrics.prom"
+
+
+#Запуск первый раз
+- name: "first start"
+  shell:
+    cmd: |
+      /scripts/nvme_metrics.sh | sponge /var/lib/node_exporter/nvme_metrics.prom
+      /scripts/smartmon.sh | sponge /var/lib/node_exporter/smartmon.prom
+      /scripts/md_info.sh  | sponge /var/lib/node_exporter/md_info.prom
+      /scripts/multipathd_info.sh | sponge /var/lib/node_exporter/multipathd_info.prom
+  when: copy.changed
+    
+
+
